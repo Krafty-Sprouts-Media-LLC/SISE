@@ -105,6 +105,10 @@
             <div id="empty-state" class="empty-state" aria-live="polite">
                 <h2>Search one term across every provider</h2>
                 <p>Openverse, iNaturalist, Unsplash, Pexels, Pixabay and Wikimedia Commons, 20 per provider, per page. For a list of keywords, use the Bulk keywords tab.</p>
+                <div class="empty-actions">
+                    <button type="button" id="empty-retry" class="btn btn-secondary hidden">Try again</button>
+                    <button type="button" id="empty-back" class="btn btn-secondary hidden"></button>
+                </div>
             </div>
 
             <div id="grid" class="grid" aria-label="Search results" aria-live="polite"></div>
@@ -114,12 +118,23 @@
             </div>
 
             <nav id="pagination" class="pagination hidden" aria-label="Results pages">
-                <button type="button" id="page-prev" class="btn btn-secondary" disabled>Previous</button>
-                <div class="page-info">
-                    <span id="page-label">Page 1</span>
-                    <span id="page-count" class="page-count"></span>
+                <div class="page-row">
+                    <button type="button" id="page-prev" class="btn btn-secondary" disabled>Previous</button>
+                    <ol id="page-numbers" class="page-numbers"></ol>
+                    <button type="button" id="page-next" class="btn btn-secondary">Next</button>
                 </div>
-                <button type="button" id="page-next" class="btn btn-secondary">Next</button>
+                <div class="page-row">
+                    <div class="page-info">
+                        <span id="page-label">Page 1</span>
+                        <span id="page-count" class="page-count"></span>
+                    </div>
+                    <form id="page-jump" class="page-jump" novalidate>
+                        <label for="page-jump-input">Go to page</label>
+                        <input id="page-jump-input" type="text" inputmode="numeric" autocomplete="off" aria-describedby="page-jump-error">
+                        <button type="submit" class="btn btn-secondary">Go</button>
+                        <span id="page-jump-error" class="page-jump-error" role="alert"></span>
+                    </form>
+                </div>
             </nav>
         </main>
     </div>

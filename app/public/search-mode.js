@@ -16,6 +16,7 @@ import {
 } from './batch-helpers.js?v=1.0.34';
 import { downloadImage, runDownloadQueue } from './download-queue.js?v=2.0.0';
 import { LICENCE_PROVIDERS } from './image-meta.js?v=2.0.2';
+import { GAP, MAX_PAGE, pageWindow, parsePageInput } from './pagination.js?v=2.2.0';
 import {
     storageGet,
     storageGetJSON,
@@ -33,6 +34,12 @@ const pagePrev      = document.getElementById('page-prev');
 const pageNext      = document.getElementById('page-next');
 const pageLabel     = document.getElementById('page-label');
 const pageCount     = document.getElementById('page-count');
+const pageNumbers   = document.getElementById('page-numbers');
+const pageJump      = document.getElementById('page-jump');
+const pageJumpInput = document.getElementById('page-jump-input');
+const pageJumpError = document.getElementById('page-jump-error');
+const emptyBack     = document.getElementById('empty-back');
+const emptyRetry    = document.getElementById('empty-retry');
 const filterPills   = document.querySelectorAll('.filter-pill');
 const orientPills   = document.querySelectorAll('.orient-pill');
 const batchToggle      = document.getElementById('batch-toggle');
@@ -53,6 +60,8 @@ let currentPage        = 1;
 let currentProvider    = '';
 let currentOrientation = '';
 let hasNextPage        = false;
+/** Furthest page that returned results for the current search (0 = none yet). */
+let furthestPage       = 0;
 let isLoading          = false;
 let searchToken        = 0;
 let batchMode          = false;
@@ -436,6 +445,33 @@ export function initSearchMode() {
         goToPage(currentPage + 1);
     });
 
+    pageNumbers.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-page]');
+        if (!btn || btn.hasAttribute('aria-current')) return;
+        goToPage(Number(btn.dataset.page));
+    });
+
+    pageJump.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const page = parsePageInput(pageJumpInput.value);
+        if (page === null) {
+            pageJumpInput.setAttribute('aria-invalid', 'true');
+            pageJumpError.textContent = `Enter a page number from 1 to ${MAX_PAGE}.`;
+            pageJumpInput.select();
+            return;
+        }
+        pageJumpInput.value = '';
+        if (page !== currentPage) goToPage(page);
+    });
+
+    pageJumpInput.addEventListener('input', clearJumpError);
+
+    emptyBack.addEventListener('click', () => {
+        if (furthestPage >= 1) goToPage(furthestPage);
+    });
+
+    emptyRetry.addEventListener('click', () => goToPage(currentPage));
+
     loadBatchState();
 }
 
@@ -444,9 +480,9 @@ function startNewSearch(q) {
     // pasted before the first search belong to that search.
     const queryChanged = currentQuery !== '' && q !== currentQuery;
 
-    searchToken++;
     currentQuery = q;
     currentPage  = 1;
+    furthestPage = 0;
 
     if (queryChanged) {
         resetBatchQueue();
@@ -456,11 +492,25 @@ function startNewSearch(q) {
 }
 
 function goToPage(page) {
+    // A newer page or search wins: the token makes fetchPage drop older responses.
+    searchToken++;
     currentPage = page;
     grid.innerHTML = '';
     emptyState.classList.add('hidden');
+    hideEmptyActions();
     pagination.classList.add('hidden');
+    clearJumpError();
     fetchPage();
+}
+
+function hideEmptyActions() {
+    emptyBack.classList.add('hidden');
+    emptyRetry.classList.add('hidden');
+}
+
+function clearJumpError() {
+    pageJumpInput.removeAttribute('aria-invalid');
+    pageJumpError.textContent = '';
 }
 
 async function fetchPage() {
@@ -493,9 +543,12 @@ async function fetchPage() {
                 );
             } else {
                 hasNextPage = false;
+                showPastEnd();
                 updatePagination();
+                pagination.classList.remove('hidden');
             }
         } else {
+            furthestPage = Math.max(furthestPage, currentPage);
             renderCards(results);
             updatePagination(results.length);
             pagination.classList.remove('hidden');
@@ -521,6 +574,32 @@ function updatePagination(totalOnPage) {
         : '';
     pagePrev.disabled = currentPage <= 1;
     pageNext.disabled = !hasNextPage;
+    renderPageNumbers();
+}
+
+function renderPageNumbers() {
+    pageNumbers.innerHTML = pageWindow(currentPage, { hasNext: hasNextPage, furthest: furthestPage })
+        .map((p) => (p === GAP
+            ? '<li><span class="page-gap" aria-hidden="true">…</span></li>'
+            : `<li><button type="button" class="page-num" data-page="${p}"${p === currentPage ? ' aria-current="page"' : ''} aria-label="Page ${p}">${p}</button></li>`))
+        .join('');
+}
+
+/**
+ * A page past page 1 came back empty. Usually the results end before it, but
+ * a provider can also return nothing for a moment, so offer both a retry and
+ * the furthest page that had results.
+ */
+function showPastEnd() {
+    emptyState.classList.remove('hidden');
+    emptyState.querySelector('h2').textContent = `No images on page ${currentPage}`;
+    emptyState.querySelector('p').textContent =
+        `Either the results for "${currentQuery}" end before this page, or the providers returned nothing this time.`;
+    emptyRetry.classList.remove('hidden');
+    if (furthestPage >= 1 && furthestPage !== currentPage) {
+        emptyBack.textContent = `Go to page ${furthestPage}`;
+        emptyBack.classList.remove('hidden');
+    }
 }
 
 // Unsplash API guidelines: credit links back to Unsplash carry the app name.
@@ -598,6 +677,7 @@ function renderCards(results) {
 
 function showEmptyState(message) {
     emptyState.classList.remove('hidden');
+    hideEmptyActions();
     pagination.classList.add('hidden');
     emptyState.querySelector('h2').textContent = `No results for "${currentQuery}"`;
     emptyState.querySelector('p').textContent  = message

@@ -5,6 +5,19 @@ All notable changes to SISE (formerly IMGverse Search) will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 29/10/2026
+
+### Added
+- **Numbered pages in Search.** Next to Previous / Next there is now a row of page numbers: page 1, two pages behind and three ahead of the current one, and the furthest page you've reached, with "…" for gaps (for example `1 … 4 5 [6] 7 8 9 …`). Click any number to go there.
+- **Go to page box.** Type a page number (1–999) and press Enter or Go. Anything else shows a short error under the box.
+- SISE can't know the last page (each provider has its own total and Wikimedia reports none), so the row has no fixed end; it grows as you move forward.
+
+### Fixed
+- **Empty page after page 1 was a dead end.** Jumping or paging past the end left a blank page with the buttons hidden. It now says "No images on page N", keeps the page row, and offers **Try again** and **Go to page X** (the furthest page that had results). The wording allows for a provider returning nothing for a moment, which does happen.
+- Clicking pages quickly could let a slower, older page overwrite the newer one; the newest page now always wins.
+- **Wikimedia errors sent as HTTP 200** (for example a busy search backend) were read as "no results". They are now logged as `[SISE/wikimedia] API error …` and the provider shows as failed.
+- **Card credits on narrow screens** were squeezed to one letter per line by the Open full image button (since 2.0.4). The button now drops below the credit when space is tight.
+
 ## [2.1.3] - 16/10/2026
 
 ### Added

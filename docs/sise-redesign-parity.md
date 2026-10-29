@@ -23,6 +23,10 @@ Source of truth for each item is listed so nothing is ported from memory.
 - [ ] "Page N" label and "X images on this page" count
 - [ ] Next page exists if server **or** Openverse has more (`mergeHasNext`)
 - [ ] Changing page or filters does **not** clear the batch queue
+- [ ] Numbered page row: page 1, two pages behind and three ahead, the furthest page seen, "…" for gaps; clicking a number opens it (`renderPageNumbers`, `pageWindow`)
+- [ ] "Go to page" box: whole numbers 1–999, anything else shows an inline error (`parsePageInput`)
+- [ ] An empty page after page 1 shows "No images on page N" with **Try again** and **Go to page X** (furthest page with results), and the page row stays visible (`showPastEnd`)
+- [ ] A newer page or search always wins over a slower older response (`searchToken` in `goToPage`)
 
 ## Result cards
 

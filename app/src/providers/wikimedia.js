@@ -134,6 +134,13 @@ export async function search(query, page = 1, orientation = '', { onResponse, on
     }
 
     const data = await res.json();
+    // MediaWiki reports some failures (busy search backend, bad offset) with
+    // HTTP 200 and an `error` object; without this they looked like "no results".
+    if (data?.error) {
+      console.error(`[SISE/wikimedia] API error ${data.error.code || 'unknown'} for q="${query}" page=${page}: ${data.error.info || ''}`);
+      onError?.(new Error(data.error.info || data.error.code || 'Wikimedia API error'));
+      return [];
+    }
     const pages = Object.values(data.query?.pages || {});
 
     return pages

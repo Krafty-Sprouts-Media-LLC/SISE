@@ -173,6 +173,14 @@ describe('provider adapters', () => {
     assert.ok(byId['wikimedia-4'].slice(0, -1).split(' ').every((w) => ['Jim', 'D.', 'Griggs,', 'HVO', '(USGS)', 'staff', 'photographer', 'and', 'a', 'very', 'long', 'list', 'of', 'other', 'people'].includes(w))); // cut on a word boundary
   });
 
+  it('wikimedia logs an API error sent with HTTP 200 instead of passing it off as no results', async () => {
+    let failed = false;
+    const fetchImpl = fakeFetch({ error: { code: 'search-backend-error', info: 'Search is temporarily unavailable' } });
+    assert.deepEqual(await wikimedia('heron', 5, '', { fetchImpl, onError: () => { failed = true; } }), []);
+    assert.equal(failed, true);
+    assert.ok(errors.some((e) => e.startsWith('[SISE/wikimedia] API error search-backend-error for q="heron" page=5')), errors.join('\n'));
+  });
+
   it('wikimedia logs, reports and returns [] on a non-OK response or a network failure', async () => {
     let status = 0;
     assert.deepEqual(await wikimedia('x', 1, '', { fetchImpl: fakeFetch({}, { status: 429 }), onResponse: (res) => { status = res.status; } }), []);
